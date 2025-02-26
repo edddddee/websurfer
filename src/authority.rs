@@ -1,3 +1,5 @@
+use crate::utils;
+
 use std::str::FromStr;
 
 #[rustfmt::skip]
@@ -17,6 +19,12 @@ struct Host {
     inner: String,
 }
 
+impl Host {
+    fn is_valid_host_byte(b: &u8) -> bool {
+        utils::binary_search(*b, &ALLOWED_HOSTNAME_BYTES)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct HostParseError;
 
@@ -24,7 +32,11 @@ impl FromStr for Host {
     type Err = HostParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s.as_bytes().iter().all(Host::is_valid_host_byte) {
+            Ok(Self { inner: s.to_ascii_lowercase() })
+        } else {
+            Err(HostParseError)
+        }
     }
 }
 
@@ -40,7 +52,10 @@ impl FromStr for Port {
     type Err = PortParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        match s.parse::<u16>() {
+            Ok(n) => Ok(Port { inner: n }),
+            Err(_) => Err(PortParseError),
+        }
     }
 }
 
@@ -50,6 +65,29 @@ struct Authority {
     port: Option<Port>,
 }
 
+impl Authority {
+    fn new() -> Self {
+        Self {
+            host: Host { inner: "".into() },
+            port: None,
+        }
+    }
+
+    fn host(self, hostname: &str) -> Self {
+        Self {
+            host: Host { inner: hostname.into() },
+            port: self.port,
+        }
+    }
+
+    fn port(self, port: u16) -> Self {
+        Self {
+            host: self.host,
+            port: Some(Port { inner: port }),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct AuthorityParseError;
 
@@ -57,6 +95,67 @@ impl FromStr for Authority {
     type Err = AuthorityParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        match s.split(":").collect::<Vec<_>>()[..] {
+            [h] => {
+                if let Ok(host) = h.parse::<Host>() {
+                    Ok(Authority {
+                        host,
+                        port: None,
+                    })
+                } else {
+                    Err(AuthorityParseError)
+                }
+            }
+            [h, p] => {
+                match (h.parse::<Host>(), p.parse::<Port>()) {
+                    (Ok(host), Ok(port)) => Ok(Authority {host, port: Some(port)}),
+                    (Ok(host), Err(_)) => Ok(Authority {host, port: None}),
+                    _ => Err(AuthorityParseError),
+                }
+            }
+            _ => Err(AuthorityParseError),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parsing() {
+        assert_eq!(
+            "www.example.com".parse(),
+            Ok(Authority::new().host("www.example.com"))
+        );
+        assert_eq!(
+            "www.example.com:443".parse(),
+            Ok(Authority::new().host("www.example.com").port(443))
+        );
+        assert_eq!(
+            "www.example-2.com:80".parse(),
+            Ok(Authority::new().host("www.example-2.com").port(80))
+        );
+        // Case insensitive
+        assert_eq!(
+            "WWW.EXAMPLE.COM".parse(),
+            Ok(Authority::new().host("www.example.com"))
+        );
+
+        // Too many ':'-separators (can only have one port number)
+        assert_eq!(
+            "www.example.com:80:443".parse::<Authority>(),
+            Err(AuthorityParseError)
+        );
+        // Invalid character
+        assert_eq!(
+            "*www.example.com".parse::<Authority>(),
+            Err(AuthorityParseError)
+        );
+        // Whitespace disallowed
+        assert_eq!(
+            " www.example.com".parse::<Authority>(),
+            Err(AuthorityParseError)
+        );
     }
 }
