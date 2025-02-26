@@ -23,7 +23,6 @@ impl FromStr for Version {
             r"HTTP/2" => Ok(Self::Http2),
             r"HTTP/3" => Ok(Self::Http3),
             _ => Err(InvalidHttpVersion),
-
         }
     }
 }

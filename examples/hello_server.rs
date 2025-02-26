@@ -17,8 +17,9 @@ fn main() -> io::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                if let Err(_) = handle_client(stream) { break; }
-
+                if let Err(_) = handle_client(stream) {
+                    break;
+                }
             }
             Err(e) => {
                 eprintln!("Encountered error: {e}");
@@ -39,11 +40,14 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
     let mut buf = [0; CHUNK_SIZE];
     loop {
         match stream.read(&mut buf) {
-            Ok(n) => { 
+            Ok(n) => {
                 data.extend_from_slice(&buf[..n]);
-                if n < CHUNK_SIZE { break; }
+                if n < CHUNK_SIZE {
+                    break;
+                }
             }
-            Err(e) => { eprintln!("Encountered error while trying to read TcpStream: {}", e); 
+            Err(e) => {
+                eprintln!("Encountered error while trying to read TcpStream: {}", e);
             }
         }
     }
