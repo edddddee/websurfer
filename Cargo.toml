@@ -3,10 +3,8 @@ name = "websurfer"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "server"
-path = "src/server/main.rs"
+[dependencies]
 
-[[bin]]
-name = "client"
-path = "src/client/main.rs"
+[[example]]
+name = "hello-server"
+path = "examples/hello_server.rs"
