@@ -1,3 +1,5 @@
+use crate::utils;
+
 use std::str::FromStr;
 
 #[rustfmt::skip]
@@ -62,7 +64,9 @@ impl Scheme {
                 "" => Ok(Scheme { inner: Repr::Empty }),
                 s => {
                     if s.chars().take(1).all(char::is_alphabetic) {
-                        Ok(Scheme { inner: Repr::Custom(String::from(s))})
+                        Ok(Scheme {
+                            inner: Repr::Custom(String::from(s)),
+                        })
                     } else {
                         Err(SchemeParseError)
                     }
@@ -71,26 +75,8 @@ impl Scheme {
         }
     }
 
-    fn binary_search(b: u8, buf: &[u8]) -> bool {
-        let mut low: isize = 0;
-        let mut high: isize = buf.len() as isize - 1;
-        let mut mid: isize = (high+low)/2;
-
-        while low <= high {
-            if b == buf[mid as usize] {
-                return true;
-            } else if b < buf[mid as usize] {
-                high = mid - 1;
-            } else {
-                low = mid + 1;
-            }
-            mid = (high+low)/2;
-        }
-        return false;
-    }
-
     fn is_valid_scheme_byte(b: &u8) -> bool {
-        Self::binary_search(*b, &ALLOWED_SCHEME_BYTES)
+        utils::binary_search(*b, &ALLOWED_SCHEME_BYTES)
     }
 }
 
@@ -124,8 +110,18 @@ mod tests {
         assert_eq!("https".parse(), Ok(Scheme::HTTPS));
         assert_eq!("HTTPS".parse(), Ok(Scheme::HTTPS));
         assert_eq!("".parse(), Ok(Scheme::EMPTY));
-        assert_eq!("blablabla".parse(), Ok(Scheme { inner: Repr::Custom("blablabla".into()) }));
-        assert_eq!("BLABLABLA".parse(), Ok(Scheme { inner: Repr::Custom("blablabla".into()) }));
+        assert_eq!(
+            "blablabla".parse(),
+            Ok(Scheme {
+                inner: Repr::Custom("blablabla".into())
+            })
+        );
+        assert_eq!(
+            "BLABLABLA".parse(),
+            Ok(Scheme {
+                inner: Repr::Custom("blablabla".into())
+            })
+        );
 
         // whitespace not allowed
         assert_eq!(" http".parse::<Scheme>(), Err(SchemeParseError));
@@ -133,6 +129,5 @@ mod tests {
         assert_eq!("http@".parse::<Scheme>(), Err(SchemeParseError));
         // does not start with an alphabetic character
         assert_eq!("1http".parse::<Scheme>(), Err(SchemeParseError));
-
     }
 }

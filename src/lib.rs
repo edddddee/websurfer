@@ -1,5 +1,7 @@
+pub mod utils;
+
 pub mod method;
 pub mod version;
-
-pub mod scheme;
 pub mod uri;
+pub mod scheme;
+pub mod authority;
