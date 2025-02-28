@@ -1,5 +1,4 @@
-name: cargo build and test
-
+name: cargo build, test and format
 on:
   push:
   pull_request:
