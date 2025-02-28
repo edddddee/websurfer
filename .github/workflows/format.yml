@@ -1,0 +1,33 @@
+name: rustfmt
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Install dependencies
+        run: |
+          rustup component add rustfmt
+
+      - name: Run cargo fmt
+        run: |
+          cargo fmt -- --check
+
+      - name: Fail if code is not formatted
+        run: |
+          if ! cargo fmt -- --check; then
+            echo "Code is not formatted correctly."
+            exit 1
+          fi
