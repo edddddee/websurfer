@@ -1,18 +1,8 @@
-use crate::utils;
+use crate::utils::ALLOWED_HOSTNAME_BYTES;
 
 use std::str::FromStr;
+use std::fmt;
 
-#[rustfmt::skip]
-const ALLOWED_HOSTNAME_BYTES: [u8; 64] = [
-    b'-', b'.',
-    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9',
-    b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K',
-    b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V',
-    b'W', b'X', b'Y', b'Z',
-    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k',
-    b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
-    b'w', b'x', b'y', b'z',  
-];
 
 #[derive(Debug, PartialEq, Eq)]
 struct Host {
@@ -21,7 +11,7 @@ struct Host {
 
 impl Host {
     fn is_valid_host_byte(b: &u8) -> bool {
-        utils::binary_search(*b, &ALLOWED_HOSTNAME_BYTES)
+        ALLOWED_HOSTNAME_BYTES.contains(b)
     }
 }
 
@@ -33,7 +23,9 @@ impl FromStr for Host {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.as_bytes().iter().all(Host::is_valid_host_byte) {
-            Ok(Self { inner: s.to_ascii_lowercase() })
+            Ok(Self {
+                inner: s.to_ascii_lowercase(),
+            })
         } else {
             Err(HostParseError)
         }
@@ -75,7 +67,9 @@ impl Authority {
 
     fn host(self, hostname: &str) -> Self {
         Self {
-            host: Host { inner: hostname.into() },
+            host: Host {
+                inner: hostname.into(),
+            },
             port: self.port,
         }
     }
@@ -98,22 +92,30 @@ impl FromStr for Authority {
         match s.split(":").collect::<Vec<_>>()[..] {
             [h] => {
                 if let Ok(host) = h.parse::<Host>() {
-                    Ok(Authority {
-                        host,
-                        port: None,
-                    })
+                    Ok(Authority { host, port: None })
                 } else {
                     Err(AuthorityParseError)
                 }
             }
-            [h, p] => {
-                match (h.parse::<Host>(), p.parse::<Port>()) {
-                    (Ok(host), Ok(port)) => Ok(Authority {host, port: Some(port)}),
-                    (Ok(host), Err(_)) => Ok(Authority {host, port: None}),
-                    _ => Err(AuthorityParseError),
-                }
-            }
+            [h, p] => match (h.parse::<Host>(), p.parse::<Port>()) {
+                (Ok(host), Ok(port)) => Ok(Authority {
+                    host,
+                    port: Some(port),
+                }),
+                (Ok(host), Err(_)) => Ok(Authority { host, port: None }),
+                _ => Err(AuthorityParseError),
+            },
             _ => Err(AuthorityParseError),
+        }
+    }
+}
+
+impl fmt::Display for Authority {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(p) = &self.port {
+            write!(f, "{}:{}", self.host.inner, p.inner) 
+        } else {
+            write!(f, "{}", self.host.inner) 
         }
     }
 }
@@ -156,6 +158,27 @@ mod tests {
         assert_eq!(
             " www.example.com".parse::<Authority>(),
             Err(AuthorityParseError)
+        );
+    }
+
+    #[test]
+    fn formatting() {
+        assert_eq!(
+            "www.example.com".parse::<Authority>().unwrap().to_string(),
+            "www.example.com"
+        );
+        assert_eq!(
+            "www.example.com:80".parse::<Authority>().unwrap().to_string(),
+            "www.example.com:80"
+        );
+        assert_eq!(
+            "www.example-2.com:443".parse::<Authority>().unwrap().to_string(),
+            "www.example-2.com:443"
+        );
+        // Case insensitive
+        assert_eq!(
+            "WWW.EXAMPLE.COM".parse::<Authority>().unwrap().to_string(),
+            "www.example.com".to_ascii_lowercase()
         );
     }
 }

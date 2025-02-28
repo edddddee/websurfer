@@ -1,18 +1,7 @@
-use crate::utils;
+use crate::utils::ALLOWED_SCHEME_BYTES;
 
 use std::str::FromStr;
 
-#[rustfmt::skip]
-const ALLOWED_SCHEME_BYTES: [u8; 65] = [
-    b'+', b'-', b'.',
-    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9',
-    b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K',
-    b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V',
-    b'W', b'X', b'Y', b'Z',
-    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k',
-    b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't', b'u', b'v',
-    b'w', b'x', b'y', b'z',  
-];
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct SchemeParseError;
@@ -76,7 +65,7 @@ impl Scheme {
     }
 
     fn is_valid_scheme_byte(b: &u8) -> bool {
-        utils::binary_search(*b, &ALLOWED_SCHEME_BYTES)
+        ALLOWED_SCHEME_BYTES.contains(b)
     }
 }
 
@@ -116,6 +105,7 @@ mod tests {
                 inner: Repr::Custom("blablabla".into())
             })
         );
+        // case insensitive
         assert_eq!(
             "BLABLABLA".parse(),
             Ok(Scheme {
