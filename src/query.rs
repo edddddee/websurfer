@@ -29,20 +29,25 @@ impl FromStr for QueryItem {
                 if !f.as_bytes().iter().all(QueryItem::is_valid_byte) {
                     Err(QueryItemParseError)
                 } else {
-                    Ok(QueryItem {field: f.into(), value: None})
+                    Ok(QueryItem {
+                        field: f.into(),
+                        value: None,
+                    })
                 }
             }
             [f, v] => {
-                if !f.as_bytes().iter().all(QueryItem::is_valid_byte) ||
-                        !v.as_bytes().iter().all(QueryItem::is_valid_byte) {
-                   Err(QueryItemParseError)
+                if !f.as_bytes().iter().all(QueryItem::is_valid_byte)
+                    || !v.as_bytes().iter().all(QueryItem::is_valid_byte)
+                {
+                    Err(QueryItemParseError)
                 } else {
-                    Ok(QueryItem{ field: f.into(), value: Some(v.into()) })
+                    Ok(QueryItem {
+                        field: f.into(),
+                        value: Some(v.into()),
+                    })
                 }
             }
-            _ => {
-                Err(QueryItemParseError)
-            }
+            _ => Err(QueryItemParseError),
         }
     }
 }
@@ -63,7 +68,11 @@ impl FromStr for Query {
             return Err(QueryParseError);
         }
         // remove the '?', now parsing field-value pairs
-        match s[1..].split('&').map(|fv| fv.parse::<QueryItem>()).collect::<Result<Vec<_>,_>>() {
+        match s[1..]
+            .split('&')
+            .map(|fv| fv.parse::<QueryItem>())
+            .collect::<Result<Vec<_>, _>>()
+        {
             Ok(items) => Ok(Query { items }),
             Err(_) => Err(QueryParseError),
         }

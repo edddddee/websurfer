@@ -60,9 +60,7 @@ impl FromStr for Path {
             .into_iter()
             .enumerate()
             .filter(|&(_, &c)| c == b'%')
-            .all(|(idx, _)| 
-                idx + 2 < s.len() - 1 && utils::is_pct_encoding(&s[idx..idx + 2])
-            )
+            .all(|(idx, _)| idx + 2 < s.len() - 1 && utils::is_pct_encoding(&s[idx..idx + 2]))
         {
             return Err(PathParseError);
         }
@@ -73,8 +71,8 @@ impl FromStr for Path {
             .enumerate()
             .filter(|&(_, &c)| c == b'.')
             .all(|(idx, _)| {
-                idx == s.len() - 1 || 
-                !(idx > 0 && s[idx + 1].is_ascii_alphanumeric() && s[idx - 1] == b'/')
+                idx == s.len() - 1
+                    || !(idx > 0 && s[idx + 1].is_ascii_alphanumeric() && s[idx - 1] == b'/')
             })
         {
             return Err(PathParseError);
