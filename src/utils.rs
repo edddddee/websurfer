@@ -21,7 +21,30 @@ pub const ALLOWED_PATH_BYTES: [u8; 69] = [
     b'w', b'x', b'y', b'z', b'~',
 ];
 
-pub const ASCII_HEX: [char; 22] = [
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C',
-    'D', 'E', 'F',
+pub const ASCII_HEX: [u8; 22] = [
+    b'0', b'1', b'2', b'3', b'4', b'5', b'6', b'7', b'8', b'9', b'a', b'b', b'c', b'd', b'e', b'f',
+    b'A', b'B', b'C', b'D', b'E', b'F',
 ];
+
+pub fn is_pct_encoding(s: &[u8]) -> bool {
+    if s.len() == 3 && s[0] == b'%' {
+        if let (true, true) = (ASCII_HEX.contains(&s[1]), ASCII_HEX.contains(&s[2])) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
+// TODO: Optimize with better algorithm? Currently using naive approach.
+//       Might not be worth it anyway. Should be cache-friendly and most inputs
+//       are expected to be shorter strings.
+pub fn contains_subslice(src: &[u8], subslice: &[u8]) -> bool {
+    let n = subslice.len();
+    if n > src.len() || n == 0 {
+        return false;
+    }
+    src.windows(n).any(|slice| slice == subslice)
+}

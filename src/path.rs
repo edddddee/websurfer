@@ -1,4 +1,4 @@
-use crate::utils::{ALLOWED_PATH_BYTES, ASCII_HEX};
+use crate::utils::{self, ALLOWED_PATH_BYTES};
 
 use std::str::FromStr;
 
@@ -7,9 +7,6 @@ struct Path {
     pathstr: String,
 }
 
-// TODO: Block "../" (directory traversal) and ".filename" (hidden folder/file)
-//       but consider it a "valid path" and catch it later for more better
-//       error messages.
 impl Path {
     fn new(s: &str) -> Self {
         Self { pathstr: s.into() }
@@ -27,50 +24,74 @@ impl FromStr for Path {
     type Err = PathParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.as_bytes().iter().all(Path::is_valid_path_byte) || s.len() == 0 {
+        let s = s.as_bytes();
+
+        // Make sure the path is non-empty and contains only valid characters.
+        if !s.iter().all(Path::is_valid_path_byte) || s.len() == 0 {
             return Err(PathParseError);
         }
-        if s.contains('*') {
+
+        // TODO: Special case. Technically only valid if method is OPTIONS.
+        if s.contains(&b'*') {
             if s.len() == 1 {
-                return Err(PathParseError);
+                unimplemented!("star path not implemented")
             } else {
                 return Err(PathParseError);
             }
         }
-        if s.chars().nth(0).unwrap() != '/' {
+
+        // First character MUST be '/' in a path
+        if s[0] != b'/' {
             return Err(PathParseError);
         }
-        if s.contains("//") {
+
+        // No double slashes
+        if utils::contains_subslice(s, b"//") {
             return Err(PathParseError);
         }
-        if s.contains("..") {
+
+        // Disallow upward traversal in the file hierarchy
+        if utils::contains_subslice(s, b"..") {
             return Err(PathParseError);
         }
-        if !s.match_indices('%').all(|(idx, _)| {
-            idx + 2 < s.len() - 1
-                && ASCII_HEX.contains(&s.chars().nth(idx + 1).unwrap())
-                && ASCII_HEX.contains(&s.chars().nth(idx + 2).unwrap())
-        }) {
+
+        // If a '%' occures, validate the percent-encoding.
+        if !s
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, &c)| c == b'%')
+            .all(|(idx, _)| idx + 2 < s.len() - 1 && utils::is_pct_encoding(&s[idx..idx + 2]))
+        {
             return Err(PathParseError);
         }
-        // If a dot occurs,
-        if !s.match_indices('.').all(|(idx, _)| {
-            idx == s.len() - 1
-                || !(idx > 0
-                    && s.chars().nth(idx + 1).unwrap().is_ascii_alphanumeric()
-                    && s.chars().nth(idx - 1).unwrap() == '/')
-        }) {
+        // If a single '.' occurs, it shall not be used to access hidden folders
+        // or files.
+        if !s
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, &c)| c == b'.')
+            .all(|(idx, _)| {
+                idx == s.len() - 1
+                    || !(idx > 0 && s[idx + 1].is_ascii_alphanumeric() && s[idx - 1] == b'/')
+            })
+        {
             return Err(PathParseError);
         }
-        if !s.match_indices('~').all(|(idx, _)| {
-            0 < idx
-                && idx < s.len() - 1
-                && s.chars().nth(idx - 1).unwrap() == '/'
-                && s.chars().nth(idx + 1).unwrap().is_ascii_alphanumeric()
-        }) {
+        // If a '~' occures,
+        if !s
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, &c)| c == b'~')
+            .all(|(idx, _)| {
+                0 < idx
+                    && idx < s.len() - 1
+                    && s[idx - 1] == b'/'
+                    && s[idx + 1].is_ascii_alphanumeric()
+            })
+        {
             return Err(PathParseError);
         }
-        return Ok(Path { pathstr: s.into() });
+        return Ok(Path { pathstr: String::from_utf8_lossy(s).into() });
     }
 }
 
