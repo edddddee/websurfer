@@ -66,29 +66,24 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
     println!("Body:\n{req_body}\n");
     //assert_eq!(parts.len(), 3);
 
-    
     let response: Vec<u8> = if req_status_line.contains("favicon.ico") {
         let res_status_line = "HTTP/1.1 200 OK";
         let body = fs::read("favicon.ico")?;
         let len = body.len();
-        let mut response = Vec::from(
-            format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")
-            .as_bytes()
-        );
+        let mut response =
+            Vec::from(format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n").as_bytes());
         response.extend(&body);
         response
     } else if req_status_line.contains(" / ") {
         let res_status_line = "HTTP/1.1 200 OK";
         let body = fs::read("index.html")?;
         let len = body.len();
-        let mut response = Vec::from(
-            format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")
-            .as_bytes()
-        );
+        let mut response =
+            Vec::from(format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n").as_bytes());
         response.extend(&body);
         response
     } else {
-        vec![42;42]
+        vec![42; 42]
     };
     stream.write_all(&response)?;
 

@@ -1,8 +1,7 @@
 use crate::utils::ALLOWED_HOSTNAME_BYTES;
 
-use std::str::FromStr;
 use std::fmt;
-
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Host {
@@ -113,9 +112,9 @@ impl FromStr for Authority {
 impl fmt::Display for Authority {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(p) = &self.port {
-            write!(f, "{}:{}", self.host.inner, p.inner) 
+            write!(f, "{}:{}", self.host.inner, p.inner)
         } else {
-            write!(f, "{}", self.host.inner) 
+            write!(f, "{}", self.host.inner)
         }
     }
 }
@@ -168,11 +167,17 @@ mod tests {
             "www.example.com"
         );
         assert_eq!(
-            "www.example.com:80".parse::<Authority>().unwrap().to_string(),
+            "www.example.com:80"
+                .parse::<Authority>()
+                .unwrap()
+                .to_string(),
             "www.example.com:80"
         );
         assert_eq!(
-            "www.example-2.com:443".parse::<Authority>().unwrap().to_string(),
+            "www.example-2.com:443"
+                .parse::<Authority>()
+                .unwrap()
+                .to_string(),
             "www.example-2.com:443"
         );
         // Case insensitive

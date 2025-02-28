@@ -2,7 +2,6 @@ use crate::utils::ALLOWED_SCHEME_BYTES;
 
 use std::str::FromStr;
 
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct SchemeParseError;
 
