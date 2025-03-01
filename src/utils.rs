@@ -36,13 +36,12 @@ pub const ASCII_HEX: [u8; 22] = [
 
 pub fn is_pct_encoding(s: &[u8]) -> bool {
     if s.len() == 3 && s[0] == b'%' {
-        if let (true, true) = (ASCII_HEX.contains(&s[1]), ASCII_HEX.contains(&s[2])) {
-            return true;
-        } else {
-            return false;
-        }
+        matches!(
+            (ASCII_HEX.contains(&s[1]), ASCII_HEX.contains(&s[2])),
+            (true, true)
+        )
     } else {
-        return false;
+        false
     }
 }
 

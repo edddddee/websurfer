@@ -27,7 +27,7 @@ impl FromStr for Path {
         let s = s.as_bytes();
 
         // Make sure the path is non-empty and contains only valid characters.
-        if !s.iter().all(Path::is_valid_path_byte) || s.len() == 0 {
+        if !s.iter().all(Path::is_valid_path_byte) || s.is_empty() {
             return Err(PathParseError);
         }
 
@@ -57,7 +57,7 @@ impl FromStr for Path {
 
         // If a '%' occures, validate the percent-encoding.
         if !s
-            .into_iter()
+            .iter()
             .enumerate()
             .filter(|&(_, &c)| c == b'%')
             .all(|(idx, _)| idx + 2 < s.len() - 1 && utils::is_pct_encoding(&s[idx..idx + 2]))
@@ -67,7 +67,7 @@ impl FromStr for Path {
         // If a single '.' occurs, it shall not be used to access hidden folders
         // or files.
         if !s
-            .into_iter()
+            .iter()
             .enumerate()
             .filter(|&(_, &c)| c == b'.')
             .all(|(idx, _)| {
@@ -79,7 +79,7 @@ impl FromStr for Path {
         }
         // If a '~' occures,
         if !s
-            .into_iter()
+            .iter()
             .enumerate()
             .filter(|&(_, &c)| c == b'~')
             .all(|(idx, _)| {
@@ -91,9 +91,8 @@ impl FromStr for Path {
         {
             return Err(PathParseError);
         }
-        return Ok(Path {
-            pathstr: String::from_utf8_lossy(s).into(),
-        });
+
+        Ok(Path::new(&String::from_utf8_lossy(s)))
     }
 }
 

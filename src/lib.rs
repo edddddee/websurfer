@@ -1,9 +1,9 @@
-pub mod utils;
+pub(crate) mod utils;
 
-pub mod authority;
-pub mod method;
-pub mod path;
-pub mod query;
-pub mod scheme;
-pub mod uri;
-pub mod version;
+pub(crate) mod authority;
+pub(crate) mod method;
+pub(crate) mod path;
+pub(crate) mod query;
+pub(crate) mod scheme;
+pub(crate) mod uri;
+pub(crate) mod version;

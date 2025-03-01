@@ -64,7 +64,7 @@ impl FromStr for Query {
     type Err = QueryParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() == 0 || s.chars().nth(0).unwrap() != '?' {
+        if s.is_empty() || s.chars().nth(0).unwrap() != '?' {
             return Err(QueryParseError);
         }
         // remove the '?', now parsing field-value pairs
@@ -87,14 +87,14 @@ mod tests {
 
     #[test]
     fn parsing() {
-        dbg!("?name=John".parse::<Query>());
-        dbg!("?name=John&age=30&city=Stockholm".parse::<Query>());
-        dbg!("?file=report-v1.2~final".parse::<Query>());
-        dbg!("?query=hello+world".parse::<Query>());
-        dbg!("?search=C%2B%2B+programming".parse::<Query>());
-        dbg!("?key=".parse::<Query>());
-        dbg!("?name=John&age=".parse::<Query>());
-        dbg!("?debug".parse::<Query>());
-        dbg!("?debug=true".parse::<Query>());
+        let _ = dbg!("?name=John".parse::<Query>());
+        let _ = dbg!("?name=John&age=30&city=Stockholm".parse::<Query>());
+        let _ = dbg!("?file=report-v1.2~final".parse::<Query>());
+        let _ = dbg!("?query=hello+world".parse::<Query>());
+        let _ = dbg!("?search=C%2B%2B+programming".parse::<Query>());
+        let _ = dbg!("?key=".parse::<Query>());
+        let _ = dbg!("?name=John&age=".parse::<Query>());
+        let _ = dbg!("?debug".parse::<Query>());
+        let _ = dbg!("?debug=true".parse::<Query>());
     }
 }

@@ -7,8 +7,8 @@ pub struct SchemeParseError;
 
 #[derive(Debug, PartialEq, Eq)]
 enum CommonSchemes {
-    HTTP,
-    HTTPS,
+    Http,
+    Https,
 }
 
 impl FromStr for CommonSchemes {
@@ -16,8 +16,8 @@ impl FromStr for CommonSchemes {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            r"http" => Ok(Self::HTTP),
-            r"https" => Ok(Self::HTTPS),
+            r"http" => Ok(Self::Http),
+            r"https" => Ok(Self::Https),
             _ => Err(SchemeParseError),
         }
     }
@@ -37,10 +37,10 @@ enum Repr {
 
 impl Scheme {
     pub const HTTP: Scheme = Scheme {
-        inner: Repr::Standard(CommonSchemes::HTTP),
+        inner: Repr::Standard(CommonSchemes::Http),
     };
     pub const HTTPS: Scheme = Scheme {
-        inner: Repr::Standard(CommonSchemes::HTTPS),
+        inner: Repr::Standard(CommonSchemes::Https),
     };
     pub const EMPTY: Scheme = Scheme { inner: Repr::Empty };
 
@@ -94,9 +94,9 @@ mod tests {
     #[test]
     fn parsing() {
         assert_eq!("http".parse(), Ok(Scheme::HTTP));
-        assert_eq!("HTTP".parse(), Ok(Scheme::HTTP));
+        assert_eq!("Http".parse(), Ok(Scheme::HTTP));
         assert_eq!("https".parse(), Ok(Scheme::HTTPS));
-        assert_eq!("HTTPS".parse(), Ok(Scheme::HTTPS));
+        assert_eq!("Https".parse(), Ok(Scheme::HTTPS));
         assert_eq!("".parse(), Ok(Scheme::EMPTY));
         assert_eq!(
             "blablabla".parse(),
