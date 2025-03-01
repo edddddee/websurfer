@@ -67,10 +67,10 @@ impl FromStr for Query {
         if s.is_empty() || s.chars().nth(0).unwrap() != '?' {
             return Err(QueryParseError);
         }
-        // remove the '?', now parsing field-value pairs
+        // remove the '?' and parse QueryItems separated by '&'
         match s[1..]
             .split('&')
-            .map(|fv| fv.parse::<QueryItem>())
+            .map(str::parse::<QueryItem>)
             .collect::<Result<Vec<_>, _>>()
         {
             Ok(items) => Ok(Query { items }),
