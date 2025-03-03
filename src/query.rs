@@ -96,7 +96,7 @@ impl FromStr for Query {
 mod tests {
     use super::*;
 
-    fn query_with_items(field_value_pairs: &[(&str, &str)]) -> Query {
+    fn create_query(field_value_pairs: &[(&str, &str)]) -> Query {
         let items: Vec<_> = field_value_pairs
             .iter()
             .map(|&(f, v)| QueryItem {
@@ -111,11 +111,11 @@ mod tests {
     fn parsing() {
         assert_eq!(
             "?name=John".parse::<Query>(),
-            Ok(query_with_items(&[("name", "John")]))
+            Ok(create_query(&[("name", "John")]))
         );
         assert_eq!(
             "?name=John&age=30&city=Stockholm".parse::<Query>(),
-            Ok(query_with_items(&[
+            Ok(create_query(&[
                 ("name", "John"),
                 ("age", "30"),
                 ("city", "Stockholm")
@@ -123,31 +123,28 @@ mod tests {
         );
         assert_eq!(
             "?file=report-v1.2~final".parse::<Query>(),
-            Ok(query_with_items(&[("file", "report-v1.2~final")]))
+            Ok(create_query(&[("file", "report-v1.2~final")]))
         );
         assert_eq!(
             "?query=hello+world".parse::<Query>(),
-            Ok(query_with_items(&[("query", "hello+world")]))
+            Ok(create_query(&[("query", "hello+world")]))
         );
         assert_eq!(
             "?search=C%2B%2B+programming".parse::<Query>(),
-            Ok(query_with_items(&[("search", "C%2B%2B+programming")]))
+            Ok(create_query(&[("search", "C%2B%2B+programming")]))
         );
-        assert_eq!(
-            "?key=".parse::<Query>(),
-            Ok(query_with_items(&[("key", "")]))
-        );
+        assert_eq!("?key=".parse::<Query>(), Ok(create_query(&[("key", "")])));
         assert_eq!(
             "?name=John&age=".parse::<Query>(),
-            Ok(query_with_items(&[("name", "John"), ("age", "")]))
+            Ok(create_query(&[("name", "John"), ("age", "")]))
         );
         assert_eq!(
             "?debug".parse::<Query>(),
-            Ok(query_with_items(&[("debug", "")]))
+            Ok(create_query(&[("debug", "")]))
         );
         assert_eq!(
             "?debug=true".parse::<Query>(),
-            Ok(query_with_items(&[("debug", "true")]))
+            Ok(create_query(&[("debug", "true")]))
         );
     }
 }
