@@ -96,46 +96,58 @@ impl FromStr for Query {
 mod tests {
     use super::*;
 
+    fn query_with_items(field_value_pairs: &[(&str, &str)]) -> Query {
+        let items: Vec<_> = field_value_pairs
+            .iter()
+            .map(|&(f, v)| QueryItem {
+                field: f.into(),
+                value: v.into(),
+            })
+            .collect();
+        Query { items }
+    }
+
     #[test]
     fn parsing() {
         assert_eq!(
             "?name=John".parse::<Query>(),
-            Ok(Query::new().with_item("name", "John"))
+            Ok(query_with_items(&[("name", "John")]))
         );
         assert_eq!(
             "?name=John&age=30&city=Stockholm".parse::<Query>(),
-            Ok(Query::new()
-                .with_item("name", "John")
-                .with_item("age", "30")
-                .with_item("city", "Stockholm"))
+            Ok(query_with_items(&[
+                ("name", "John"),
+                ("age", "30"),
+                ("city", "Stockholm")
+            ]))
         );
         assert_eq!(
             "?file=report-v1.2~final".parse::<Query>(),
-            Ok(Query::new().with_item("file", "report-v1.2~final"))
+            Ok(query_with_items(&[("file", "report-v1.2~final")]))
         );
         assert_eq!(
             "?query=hello+world".parse::<Query>(),
-            Ok(Query::new().with_item("query", "hello+world"))
+            Ok(query_with_items(&[("query", "hello+world")]))
         );
         assert_eq!(
             "?search=C%2B%2B+programming".parse::<Query>(),
-            Ok(Query::new().with_item("search", "C%2B%2B+programming"))
+            Ok(query_with_items(&[("search", "C%2B%2B+programming")]))
         );
         assert_eq!(
             "?key=".parse::<Query>(),
-            Ok(Query::new().with_item("key", ""))
+            Ok(query_with_items(&[("key", "")]))
         );
         assert_eq!(
             "?name=John&age=".parse::<Query>(),
-            Ok(Query::new().with_item("name", "John").with_item("age", ""))
+            Ok(query_with_items(&[("name", "John"), ("age", "")]))
         );
         assert_eq!(
             "?debug".parse::<Query>(),
-            Ok(Query::new().with_item("debug", ""))
+            Ok(query_with_items(&[("debug", "")]))
         );
         assert_eq!(
             "?debug=true".parse::<Query>(),
-            Ok(Query::new().with_item("debug", "true"))
+            Ok(query_with_items(&[("debug", "true")]))
         );
     }
 }
