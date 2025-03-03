@@ -1,6 +1,6 @@
-use crate::utils::ALLOWED_QUERY_BYTES;
-
 use std::str::FromStr;
+
+use crate::utils::ALLOWED_QUERY_BYTES;
 
 // TODO: percent-encoding currently not handled. Maybe should be
 //       the responsibility of a validation earlier in the chain though.
@@ -79,12 +79,12 @@ impl FromStr for Query {
     }
 }
 
-// TODO: Add actual tests. Compare using json files? The Query structs become
-//       quite verbose otherwise.
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // TODO: Add actual tests. Compare using json files? The Query structs become
+    //       quite verbose otherwise.
     #[test]
     fn parsing() {
         let _ = dbg!("?name=John".parse::<Query>());

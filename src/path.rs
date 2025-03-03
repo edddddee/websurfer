@@ -1,6 +1,6 @@
-use crate::utils::{self, ALLOWED_PATH_BYTES};
-
 use std::str::FromStr;
+
+use crate::utils::{self, ALLOWED_PATH_BYTES};
 
 #[derive(Debug, PartialEq, Eq)]
 struct Path {
@@ -60,7 +60,10 @@ impl FromStr for Path {
             .iter()
             .enumerate()
             .filter(|&(_, &c)| c == b'%')
-            .all(|(idx, _)| idx + 2 < s.len() - 1 && utils::is_pct_encoding(&s[idx..idx + 2]))
+            .all(|(idx, _)| {
+                idx + 2 < s.len() - 1
+                    && utils::is_percent_encoding(&s[idx..idx + 2])
+            })
         {
             return Err(PathParseError);
         }
@@ -72,7 +75,9 @@ impl FromStr for Path {
             .filter(|&(_, &c)| c == b'.')
             .all(|(idx, _)| {
                 idx == s.len() - 1
-                    || !(idx > 0 && s[idx + 1].is_ascii_alphanumeric() && s[idx - 1] == b'/')
+                    || !(idx > 0
+                        && s[idx + 1].is_ascii_alphanumeric()
+                        && s[idx - 1] == b'/')
             })
         {
             return Err(PathParseError);
@@ -142,7 +147,10 @@ mod tests {
         assert_eq!("/path%invalid".parse::<Path>(), Err(PathParseError));
         assert_eq!("/%/invalid-character".parse::<Path>(), Err(PathParseError));
         assert_eq!("/##".parse::<Path>(), Err(PathParseError));
-        assert_eq!(r"/path\with\backslash".parse::<Path>(), Err(PathParseError));
+        assert_eq!(
+            r"/path\with\backslash".parse::<Path>(),
+            Err(PathParseError)
+        );
         assert_eq!("/path!@#^".parse::<Path>(), Err(PathParseError));
         assert_eq!("/path~".parse::<Path>(), Err(PathParseError));
         assert_eq!("/path&other".parse::<Path>(), Err(PathParseError));

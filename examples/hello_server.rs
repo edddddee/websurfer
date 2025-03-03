@@ -1,9 +1,8 @@
 #![feature(string_from_utf8_lossy_owned)]
 
-use std::fs;
-use std::io;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::{fs, io};
 
 //const REQUEST: &str = "HTTP/1.1 200 OK\r\nContent-Length: 55\r\nContent-Type: text/html\r\nLast-Modified: Wed, 12 Aug 1998 15:03:50 GMT\r\nAccept-Ranges: bytes\r\nETag: “04f97692cbd1:377”\r\nDate: Thu, 19 Jun 2008 19:29:07 GMT\r\n\r\n<55-character response>";
 
@@ -47,16 +46,22 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
                 }
             }
             Err(e) => {
-                eprintln!("Encountered error while trying to read TcpStream: {}", e);
+                eprintln!(
+                    "Encountered error while trying to read TcpStream: {}",
+                    e
+                );
             }
         }
     }
     let data = String::from_utf8_lossy_owned(data);
-    let [req_status_line, rest] = data.splitn(2, "\r\n").collect::<Vec<_>>()[..] else {
+    let [req_status_line, rest] =
+        data.splitn(2, "\r\n").collect::<Vec<_>>()[..]
+    else {
         println!("Unexpected request:\n{}", data);
         panic!();
     };
-    let [req_header, req_body] = rest.split("\r\n\r\n").collect::<Vec<_>>()[..] else {
+    let [req_header, req_body] = rest.split("\r\n\r\n").collect::<Vec<_>>()[..]
+    else {
         println!("Unexpected request:\n{}", data);
         panic!();
     };
@@ -70,16 +75,20 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
         let res_status_line = "HTTP/1.1 200 OK";
         let body = fs::read("favicon.ico")?;
         let len = body.len();
-        let mut response =
-            Vec::from(format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n").as_bytes());
+        let mut response = Vec::from(
+            format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")
+                .as_bytes(),
+        );
         response.extend(&body);
         response
     } else if req_status_line.contains(" / ") {
         let res_status_line = "HTTP/1.1 200 OK";
         let body = fs::read("index.html")?;
         let len = body.len();
-        let mut response =
-            Vec::from(format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n").as_bytes());
+        let mut response = Vec::from(
+            format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")
+                .as_bytes(),
+        );
         response.extend(&body);
         response
     } else {

@@ -1,6 +1,6 @@
-use crate::utils::ALLOWED_SCHEME_BYTES;
-
 use std::str::FromStr;
+
+use crate::utils::ALLOWED_SCHEME_BYTES;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct SchemeParseError;
@@ -51,6 +51,7 @@ impl Scheme {
             match s {
                 "" => Ok(Scheme { inner: Repr::Empty }),
                 s => {
+                    // First letter must be alphabetic
                     if s.chars().take(1).all(char::is_alphabetic) {
                         Ok(Scheme {
                             inner: Repr::Custom(String::from(s)),

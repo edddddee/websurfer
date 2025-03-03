@@ -2,15 +2,15 @@ use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Method {
-    GET,
-    HEAD,
-    POST,
-    PUT,
-    DELETE,
-    CONNECT,
-    OPTIONS,
-    TRACE,
-    PATCH,
+    Get,
+    Head,
+    Post,
+    Put,
+    Delete,
+    Connect,
+    Options,
+    Trace,
+    Patch,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -21,15 +21,15 @@ impl FromStr for Method {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "GET" => Ok(Self::GET),
-            "HEAD" => Ok(Self::HEAD),
-            "POST" => Ok(Self::POST),
-            "PUT" => Ok(Self::PUT),
-            "DELETE" => Ok(Self::DELETE),
-            "CONNECT" => Ok(Self::CONNECT),
-            "OPTIONS" => Ok(Self::OPTIONS),
-            "TRACE" => Ok(Self::TRACE),
-            "PATCH" => Ok(Self::PATCH),
+            "GET" => Ok(Self::Get),
+            "HEAD" => Ok(Self::Head),
+            "POST" => Ok(Self::Post),
+            "PUT" => Ok(Self::Put),
+            "DELETE" => Ok(Self::Delete),
+            "CONNECT" => Ok(Self::Connect),
+            "OPTIONS" => Ok(Self::Options),
+            "TRACE" => Ok(Self::Trace),
+            "PATCH" => Ok(Self::Patch),
             _ => Err(InvalidHttpMethod),
         }
     }
@@ -41,15 +41,15 @@ mod tests {
 
     #[test]
     fn parsing() {
-        assert_eq!("GET".parse(), Ok(Method::GET));
-        assert_eq!("HEAD".parse(), Ok(Method::HEAD));
-        assert_eq!("POST".parse(), Ok(Method::POST));
-        assert_eq!("PUT".parse(), Ok(Method::PUT));
-        assert_eq!("DELETE".parse(), Ok(Method::DELETE));
-        assert_eq!("CONNECT".parse(), Ok(Method::CONNECT));
-        assert_eq!("OPTIONS".parse(), Ok(Method::OPTIONS));
-        assert_eq!("TRACE".parse(), Ok(Method::TRACE));
-        assert_eq!("PATCH".parse(), Ok(Method::PATCH));
+        assert_eq!("GET".parse(), Ok(Method::Get));
+        assert_eq!("HEAD".parse(), Ok(Method::Head));
+        assert_eq!("POST".parse(), Ok(Method::Post));
+        assert_eq!("PUT".parse(), Ok(Method::Put));
+        assert_eq!("DELETE".parse(), Ok(Method::Delete));
+        assert_eq!("CONNECT".parse(), Ok(Method::Connect));
+        assert_eq!("OPTIONS".parse(), Ok(Method::Options));
+        assert_eq!("TRACE".parse(), Ok(Method::Trace));
+        assert_eq!("PATCH".parse(), Ok(Method::Patch));
 
         // Case sensitive
         assert_eq!("get".parse::<Method>(), Err(InvalidHttpMethod));

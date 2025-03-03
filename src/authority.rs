@@ -1,7 +1,7 @@
-use crate::utils::ALLOWED_HOSTNAME_BYTES;
-
 use std::fmt;
 use std::str::FromStr;
+
+use crate::utils::ALLOWED_HOSTNAME_BYTES;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Host {
@@ -21,13 +21,41 @@ impl FromStr for Host {
     type Err = HostParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.as_bytes().iter().all(Host::is_valid_host_byte) {
-            Ok(Self {
-                inner: s.to_ascii_lowercase(),
-            })
-        } else {
-            Err(HostParseError)
+        // Check that s contains only valid hostname characters
+        if !s.as_bytes().iter().all(Host::is_valid_host_byte) {
+            return Err(HostParseError);
         }
+        // s needs to start with an alphanumeric character
+        if !s.starts_with(|c: char| c.is_ascii_alphanumeric()) {
+            return Err(HostParseError);
+        }
+        // s cannot be purely numerical. E.g. '424242' is not a hostname.
+        if s.chars().all(|c: char| c.is_ascii_digit()) {
+            return Err(HostParseError);
+        }
+        // No consecutive dots
+        if s.contains("..") {
+            return Err(HostParseError);
+        }
+        // If s contains a '-', it must be preceed and be preceeded by
+        // an alphanumeric value.
+        //
+        // s cannot end with a '-' or a '.'
+        let mut chars = s.chars();
+        while let Some(this_char) = chars.next() {
+            match (&this_char, &chars.next()) {
+                ('-', Some('.'))
+                | ('.', Some('-'))
+                | ('-', None)
+                | ('.', None) => {
+                    return Err(HostParseError);
+                }
+                _ => {}
+            }
+        }
+        Ok(Self {
+            inner: s.to_ascii_lowercase(),
+        })
     }
 }
 
@@ -123,6 +151,7 @@ impl fmt::Display for Authority {
 mod tests {
     use super::*;
 
+    // TODO: Add more examples (especially invalid ones)
     #[test]
     fn parsing() {
         assert_eq!(
