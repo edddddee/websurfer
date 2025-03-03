@@ -9,45 +9,56 @@ use crate::utils::ALLOWED_QUERY_BYTES;
 #[derive(Debug, Eq, PartialEq)]
 struct QueryItem {
     field: String,
-    value: String,
+    value: Option<String>,
 }
 
 impl QueryItem {
     fn is_valid_byte(b: &u8) -> bool {
         ALLOWED_QUERY_BYTES.contains(b)
     }
+    fn is_valid_field(field: &str) -> bool {
+        field.as_bytes().iter().all(Self::is_valid_byte)
+    }
+    fn is_valid_value(value: &str) -> bool {
+        value.as_bytes().iter().all(Self::is_valid_byte)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
-struct QueryItemParseError;
+enum QueryParseError {
+    InvalidCharacter,
+    BadFieldValue,
+    EmptyInput,
+}
 
 impl FromStr for QueryItem {
-    type Err = QueryItemParseError;
+    type Err = QueryParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.split('=').collect::<Vec<_>>()[..] {
-            [f, ""] | [f] => {
-                if !f.as_bytes().iter().all(QueryItem::is_valid_byte) {
-                    Err(QueryItemParseError)
+            [""] => Err(QueryParseError::EmptyInput),
+            [f] | [f, ""] => {
+                if !QueryItem::is_valid_field(f) {
+                    Err(QueryParseError::InvalidCharacter)
                 } else {
                     Ok(QueryItem {
                         field: f.into(),
-                        value: "".into(),
+                        value: Some("".into()),
                     })
                 }
             }
             [f, v] => {
-                if !f.as_bytes().iter().all(QueryItem::is_valid_byte)
-                    || !v.as_bytes().iter().all(QueryItem::is_valid_byte)
+                if !QueryItem::is_valid_field(f)
+                    || !QueryItem::is_valid_value(v)
                 {
-                    Err(QueryItemParseError)
+                    Err(QueryParseError::InvalidCharacter)
                 } else {
                     Ok(QueryItem {
                         field: f.into(),
-                        value: v.into(),
+                        value: Some(v.into()),
                     })
                 }
             }
-            _ => Err(QueryItemParseError),
+            _ => Err(QueryParseError::BadFieldValue),
         }
     }
 }
@@ -61,33 +72,20 @@ impl Query {
     fn new() -> Self {
         Self { items: vec![] }
     }
-
-    fn with_item(mut self, field: &str, value: &str) -> Self {
-        let value = value.to_string();
-        let field = field.to_string();
-        self.items.push(QueryItem { field, value });
-        Self { items: self.items }
-    }
 }
-
-#[derive(Debug, Eq, PartialEq)]
-struct QueryParseError;
 
 impl FromStr for Query {
     type Err = QueryParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.is_empty() || s.chars().nth(0).unwrap() != '?' {
-            return Err(QueryParseError);
-        }
-        // remove the '?' and parse QueryItems separated by '&'
-        match s[1..]
+        match s
             .split('&')
             .map(str::parse::<QueryItem>)
             .collect::<Result<Vec<_>, _>>()
         {
             Ok(items) => Ok(Query { items }),
-            Err(_) => Err(QueryParseError),
+            Err(QueryParseError::EmptyInput) => Ok(Query { items: vec![] }),
+            Err(e) => Err(e),
         }
     }
 }
@@ -96,17 +94,16 @@ impl FromStr for Query {
 mod tests {
     use super::*;
 
-    // local util function for quickly creating Query structs
-    // doesn't validate input so shouldn't be exposed.
-    // Similar constructor functions might be needed as methods in the future
-    // but may be implemented differently. This function is purely implemented
-    // to be able to write less verbose syntax in the tests below
+    // This function is implemented purely for writing less syntax in the
+    // tests below.
+    // Doesn't validate input so shouldn't be exposed and used anywhere else
+    // internally.
     fn create_query(field_value_pairs: &[(&str, &str)]) -> Query {
         let items: Vec<_> = field_value_pairs
             .iter()
             .map(|&(f, v)| QueryItem {
                 field: f.into(),
-                value: v.into(),
+                value: if v == "" { None } else { Some(v.into()) },
             })
             .collect();
         Query { items }
@@ -115,11 +112,11 @@ mod tests {
     #[test]
     fn parsing() {
         assert_eq!(
-            "?name=John".parse::<Query>(),
+            "name=John".parse::<Query>(),
             Ok(create_query(&[("name", "John")]))
         );
         assert_eq!(
-            "?name=John&age=30&city=Stockholm".parse::<Query>(),
+            "name=John&age=30&city=Stockholm".parse::<Query>(),
             Ok(create_query(&[
                 ("name", "John"),
                 ("age", "30"),
@@ -127,29 +124,46 @@ mod tests {
             ]))
         );
         assert_eq!(
-            "?file=report-v1.2~final".parse::<Query>(),
+            "file=report-v1.2~final".parse::<Query>(),
             Ok(create_query(&[("file", "report-v1.2~final")]))
         );
         assert_eq!(
-            "?query=hello+world".parse::<Query>(),
-            Ok(create_query(&[("query", "hello+world")]))
+            "query=hello%20world".parse::<Query>(),
+            Ok(create_query(&[("query", "hello%20world")]))
         );
         assert_eq!(
-            "?search=C%2B%2B+programming".parse::<Query>(),
-            Ok(create_query(&[("search", "C%2B%2B+programming")]))
-        );
-        assert_eq!("?key=".parse::<Query>(), Ok(create_query(&[("key", "")])));
-        assert_eq!(
-            "?name=John&age=".parse::<Query>(),
-            Ok(create_query(&[("name", "John"), ("age", "")]))
+            "search=C%2B%2B%20programming".parse::<Query>(),
+            Ok(create_query(&[("search", "C%2B%2B%20programming")]))
         );
         assert_eq!(
-            "?debug".parse::<Query>(),
-            Ok(create_query(&[("debug", "")]))
+            "key=".parse::<Query>(),
+            Ok(Query {
+                items: vec![QueryItem {
+                    field: "key".into(),
+                    value: Some("".into()),
+                }]
+            })
         );
         assert_eq!(
-            "?debug=true".parse::<Query>(),
+            "name=John&age=".parse::<Query>(),
+            Ok(Query {
+                items: vec![
+                    QueryItem {
+                        field: "name".into(),
+                        value: Some("John".into()),
+                    },
+                    QueryItem {
+                        field: "age".into(),
+                        value: Some("".into()),
+                    }
+                ]
+            })
+        );
+        assert_eq!(
+            "debug=true".parse::<Query>(),
             Ok(create_query(&[("debug", "true")]))
         );
+        // Empty query (valid)
+        assert_eq!("".parse::<Query>(), Ok(Query { items: vec![] }))
     }
 }
