@@ -6,6 +6,7 @@ use std::{fs, io};
 
 //const REQUEST: &str = "HTTP/1.1 200 OK\r\nContent-Length: 55\r\nContent-Type: text/html\r\nLast-Modified: Wed, 12 Aug 1998 15:03:50 GMT\r\nAccept-Ranges: bytes\r\nETag: “04f97692cbd1:377”\r\nDate: Thu, 19 Jun 2008 19:29:07 GMT\r\n\r\n<55-character response>";
 
+const BASE_DIR: &str = "examples/hello-server";
 const HOST: &str = "127.0.0.1";
 const PORT: &str = "80";
 
@@ -31,6 +32,8 @@ fn main() -> io::Result<()> {
 const CHUNK_SIZE: usize = 8192;
 
 fn handle_client(mut stream: TcpStream) -> io::Result<()> {
+    let cwd = std::env::current_dir();
+
     if let Ok(addr) = stream.peer_addr() {
         println!("Incoming connection: {}\n", addr);
     }
@@ -73,7 +76,7 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
 
     let response: Vec<u8> = if req_status_line.contains("favicon.ico") {
         let res_status_line = "HTTP/1.1 200 OK";
-        let body = fs::read("favicon.ico")?;
+        let body = fs::read("examples/hello-server/favicon.ico")?;
         let len = body.len();
         let mut response = Vec::from(
             format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")
@@ -83,7 +86,7 @@ fn handle_client(mut stream: TcpStream) -> io::Result<()> {
         response
     } else if req_status_line.contains(" / ") {
         let res_status_line = "HTTP/1.1 200 OK";
-        let body = fs::read("index.html")?;
+        let body = fs::read("examples/hello-server/index.html").unwrap();
         let len = body.len();
         let mut response = Vec::from(
             format!("{res_status_line}\r\nContent-Length: {len}\r\n\r\n")

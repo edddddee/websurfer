@@ -7,4 +7,4 @@ edition = "2024"
 
 [[example]]
 name = "hello-server"
-path = "examples/hello_server.rs"
+path = "examples/hello-server/main.rs"
