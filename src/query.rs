@@ -9,7 +9,7 @@ use crate::utils::ALLOWED_QUERY_BYTES;
 #[derive(Debug, Eq, PartialEq)]
 struct QueryItem {
     field: String,
-    value: Option<String>,
+    value: String,
 }
 
 impl QueryItem {
@@ -31,7 +31,7 @@ impl FromStr for QueryItem {
                 } else {
                     Ok(QueryItem {
                         field: f.into(),
-                        value: None,
+                        value: "".into(),
                     })
                 }
             }
@@ -43,7 +43,7 @@ impl FromStr for QueryItem {
                 } else {
                     Ok(QueryItem {
                         field: f.into(),
-                        value: Some(v.into()),
+                        value: v.into(),
                     })
                 }
             }
@@ -55,6 +55,19 @@ impl FromStr for QueryItem {
 #[derive(Debug, Eq, PartialEq)]
 struct Query {
     items: Vec<QueryItem>,
+}
+
+impl Query {
+    fn new() -> Self {
+        Self { items: vec![] }
+    }
+
+    fn with_item(mut self, field: &str, value: &str) -> Self {
+        let value = value.to_string();
+        let field = field.to_string();
+        self.items.push(QueryItem { field, value });
+        Self { items: self.items }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -83,18 +96,46 @@ impl FromStr for Query {
 mod tests {
     use super::*;
 
-    // TODO: Add actual tests. Compare using json files? The Query structs become
-    //       quite verbose otherwise.
     #[test]
     fn parsing() {
-        let _ = dbg!("?name=John".parse::<Query>());
-        let _ = dbg!("?name=John&age=30&city=Stockholm".parse::<Query>());
-        let _ = dbg!("?file=report-v1.2~final".parse::<Query>());
-        let _ = dbg!("?query=hello+world".parse::<Query>());
-        let _ = dbg!("?search=C%2B%2B+programming".parse::<Query>());
-        let _ = dbg!("?key=".parse::<Query>());
-        let _ = dbg!("?name=John&age=".parse::<Query>());
-        let _ = dbg!("?debug".parse::<Query>());
-        let _ = dbg!("?debug=true".parse::<Query>());
+        assert_eq!(
+            "?name=John".parse::<Query>(),
+            Ok(Query::new().with_item("name", "John"))
+        );
+        assert_eq!(
+            "?name=John&age=30&city=Stockholm".parse::<Query>(),
+            Ok(Query::new()
+                .with_item("name", "John")
+                .with_item("age", "30")
+                .with_item("city", "Stockholm"))
+        );
+        assert_eq!(
+            "?file=report-v1.2~final".parse::<Query>(),
+            Ok(Query::new().with_item("file", "report-v1.2~final"))
+        );
+        assert_eq!(
+            "?query=hello+world".parse::<Query>(),
+            Ok(Query::new().with_item("query", "hello+world"))
+        );
+        assert_eq!(
+            "?search=C%2B%2B+programming".parse::<Query>(),
+            Ok(Query::new().with_item("search", "C%2B%2B+programming"))
+        );
+        assert_eq!(
+            "?key=".parse::<Query>(),
+            Ok(Query::new().with_item("key", ""))
+        );
+        assert_eq!(
+            "?name=John&age=".parse::<Query>(),
+            Ok(Query::new().with_item("name", "John").with_item("age", ""))
+        );
+        assert_eq!(
+            "?debug".parse::<Query>(),
+            Ok(Query::new().with_item("debug", ""))
+        );
+        assert_eq!(
+            "?debug=true".parse::<Query>(),
+            Ok(Query::new().with_item("debug", "true"))
+        );
     }
 }
