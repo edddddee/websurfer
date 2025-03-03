@@ -96,6 +96,11 @@ impl FromStr for Query {
 mod tests {
     use super::*;
 
+    // local util function for quickly creating Query structs
+    // doesn't validate input so shouldn't be exposed.
+    // Similar constructor functions might be needed as methods in the future
+    // but may be implemented differently. This function is purely implemented
+    // to be able to write less verbose syntax in the tests below
     fn create_query(field_value_pairs: &[(&str, &str)]) -> Query {
         let items: Vec<_> = field_value_pairs
             .iter()
