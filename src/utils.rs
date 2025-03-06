@@ -54,10 +54,7 @@ pub const ASCII_HEX: [u8; 22] = [
 ];
 
 pub fn is_percent_encoding(hex: [u8; 2]) -> bool {
-    matches!(
-        (ASCII_HEX.contains(&hex[0]), ASCII_HEX.contains(&hex[1])),
-        (true, true)
-    )
+    ASCII_HEX.contains(&hex[0]) && ASCII_HEX.contains(&hex[1])
 }
 
 pub fn is_properly_percent_encoded(bytes: &[u8]) -> bool {
