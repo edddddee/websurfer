@@ -67,7 +67,7 @@ pub fn is_properly_percent_encoded(bytes: &[u8]) -> bool {
         .filter(|&(_, &c)| c == b'%')
         .all(|(idx, _)| {
             idx + 2 < bytes.len() - 1
-                && is_percent_encoding([bytes[idx+1], bytes[idx+2]])
+                && is_percent_encoding([bytes[idx + 1], bytes[idx + 2]])
         })
 }
 
