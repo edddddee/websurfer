@@ -53,8 +53,8 @@ pub const ASCII_HEX: [u8; 22] = [
     b'c', b'd', b'e', b'f', b'A', b'B', b'C', b'D', b'E', b'F',
 ];
 
-pub fn is_percent_encoding(hex: [u8; 2]) -> bool {
-    ASCII_HEX.contains(&hex[0]) && ASCII_HEX.contains(&hex[1])
+pub fn is_percent_encoding(a: u8, b: u8) -> bool {
+    ASCII_HEX.contains(&a) && ASCII_HEX.contains(&b)
 }
 
 pub fn is_properly_percent_encoded(bytes: &[u8]) -> bool {
@@ -64,7 +64,7 @@ pub fn is_properly_percent_encoded(bytes: &[u8]) -> bool {
         .filter(|&(_, &c)| c == b'%')
         .all(|(idx, _)| {
             idx + 2 < bytes.len() - 1
-                && is_percent_encoding([bytes[idx + 1], bytes[idx + 2]])
+                && is_percent_encoding(bytes[idx + 1], bytes[idx + 2])
         })
 }
 
