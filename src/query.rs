@@ -219,12 +219,25 @@ mod tests {
         );
 
         // Unencoded special characters (space, !)
-        assert_matches!("q=hello world!".parse::<Query>(), Err(_));
+        assert_eq!(
+            "q=hello world!".parse::<Query>(),
+            Err(QueryParseError::InvalidCharacter)
+        );
         // Missing key before equals sign
-        assert_matches!("=value".parse::<Query>(), Err(_));
+        assert_eq!("=value".parse::<Query>(), Err(QueryParseError::EmptyField));
         // Malformed percent encoding (%2G is not valid)
-        assert_matches!("q=hello%2Gworld".parse::<Query>(), Err(_));
+        assert_eq!(
+            "q=hello%2Gworld".parse::<Query>(),
+            Err(QueryParseError::BadPercentEncoding)
+        );
         // Using reserved characters in query parameter names
-        assert_matches!("hello@=world".parse::<Query>(), Err(_));
+        assert_eq!(
+            "hello@=world".parse::<Query>(),
+            Err(QueryParseError::InvalidCharacter)
+        );
+        assert_eq!(
+            "hello=this=world".parse::<Query>(),
+            Err(QueryParseError::BadFieldValue)
+        );
     }
 }
