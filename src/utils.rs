@@ -53,15 +53,22 @@ pub const ASCII_HEX: [u8; 22] = [
     b'c', b'd', b'e', b'f', b'A', b'B', b'C', b'D', b'E', b'F',
 ];
 
-pub fn is_percent_encoding(s: &[u8]) -> bool {
-    if s.len() == 3 && s[0] == b'%' {
-        matches!(
-            (ASCII_HEX.contains(&s[1]), ASCII_HEX.contains(&s[2])),
-            (true, true)
-        )
-    } else {
-        false
-    }
+pub fn is_percent_encoding(hex: [u8; 2]) -> bool {
+    matches!(
+        (ASCII_HEX.contains(&hex[0]), ASCII_HEX.contains(&hex[1])),
+        (true, true)
+    )
+}
+
+pub fn is_properly_percent_encoded(bytes: &[u8]) -> bool {
+    bytes
+        .iter()
+        .enumerate()
+        .filter(|&(_, &c)| c == b'%')
+        .all(|(idx, _)| {
+            idx + 2 < bytes.len() - 1
+                && is_percent_encoding([bytes[idx+1], bytes[idx+2]])
+        })
 }
 
 // TODO: Optimize with better algorithm? Currently using naive approach.
