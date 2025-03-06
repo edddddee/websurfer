@@ -56,15 +56,7 @@ impl FromStr for Path {
         }
 
         // If a '%' occures, validate the percent-encoding.
-        if !s
-            .iter()
-            .enumerate()
-            .filter(|&(_, &c)| c == b'%')
-            .all(|(idx, _)| {
-                idx + 2 < s.len() - 1
-                    && utils::is_percent_encoding(&s[idx..idx + 2])
-            })
-        {
+        if !utils::is_properly_percent_encoded(s) {
             return Err(PathParseError);
         }
         // If a single '.' occurs, it shall not be used to access hidden folders
