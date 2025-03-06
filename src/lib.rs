@@ -1,3 +1,5 @@
+#![feature(assert_matches)]
+
 pub(crate) mod utils;
 
 pub(crate) mod authority;
