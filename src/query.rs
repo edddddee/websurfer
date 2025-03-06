@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::str::FromStr;
 
-use crate::utils::ALLOWED_QUERY_BYTES;
+use crate::utils::{self, ALLOWED_QUERY_BYTES};
 
 // TODO: percent-encoding currently not handled. Maybe should be
 //       the responsibility of a validation earlier in the chain though.
@@ -29,6 +31,8 @@ enum QueryParseError {
     InvalidCharacter,
     BadFieldValue,
     EmptyInput,
+    EmptyField,
+    BadPercentEncoding,
 }
 
 impl FromStr for QueryItem {
@@ -36,7 +40,18 @@ impl FromStr for QueryItem {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.split('=').collect::<Vec<_>>()[..] {
             [""] => Err(QueryParseError::EmptyInput),
-            [f] | [f, ""] => {
+            [f] => {
+                if !QueryItem::is_valid_field(f) {
+                    Err(QueryParseError::InvalidCharacter)
+                } else {
+                    Ok(QueryItem {
+                        field: f.into(),
+                        value: None,
+                    })
+                }
+            }
+            ["", _] => Err(QueryParseError::EmptyField),
+            [f, ""] => {
                 if !QueryItem::is_valid_field(f) {
                     Err(QueryParseError::InvalidCharacter)
                 } else {
@@ -65,12 +80,14 @@ impl FromStr for QueryItem {
 
 #[derive(Debug, Eq, PartialEq)]
 struct Query {
-    items: Vec<QueryItem>,
+    map: HashMap<String, Vec<String>>,
 }
 
 impl Query {
     fn new() -> Self {
-        Self { items: vec![] }
+        Self {
+            map: HashMap::new(),
+        }
     }
 }
 
@@ -78,20 +95,43 @@ impl FromStr for Query {
     type Err = QueryParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s
-            .split('&')
-            .map(str::parse::<QueryItem>)
-            .collect::<Result<Vec<_>, _>>()
-        {
-            Ok(items) => Ok(Query { items }),
-            Err(QueryParseError::EmptyInput) => Ok(Query { items: vec![] }),
-            Err(e) => Err(e),
+        let mut query = Query::new();
+        if s.is_empty() {
+            return Ok(query);
         }
+        if !utils::is_properly_percent_encoded(s.as_bytes()) {
+            return Err(QueryParseError::BadPercentEncoding);
+        }
+        for query_item in s.split('&').map(str::parse::<QueryItem>) {
+            match query_item {
+                Err(e) => return Err(e),
+                Ok(QueryItem { field, value }) => {
+                    match query.map.entry(field) {
+                        Occupied(mut entry) => {
+                            if let Some(value) = value {
+                                let vec = entry.get_mut();
+                                vec.push(value);
+                            };
+                        }
+                        Vacant(entry) => {
+                            entry.insert(if let Some(value) = value {
+                                vec![value]
+                            } else {
+                                vec![]
+                            });
+                        }
+                    };
+                }
+            }
+        }
+        Ok(query)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches::assert_matches;
+
     use super::*;
 
     // This function is implemented purely for writing less syntax in the
@@ -99,14 +139,26 @@ mod tests {
     // Doesn't validate input so shouldn't be exposed and used anywhere else
     // internally.
     fn create_query(field_value_pairs: &[(&str, &str)]) -> Query {
-        let items: Vec<_> = field_value_pairs
-            .iter()
-            .map(|&(f, v)| QueryItem {
-                field: f.into(),
-                value: if v == "" { None } else { Some(v.into()) },
-            })
-            .collect();
-        Query { items }
+        let mut query = Query::new();
+        field_value_pairs.iter().for_each(|&(f, v)| {
+            let field = f.to_string();
+            let value = v.to_string();
+            match query.map.entry(field) {
+                Occupied(mut entry) => {
+                    if value != "None" {
+                        entry.get_mut().push(value);
+                    }
+                }
+                Vacant(entry) => {
+                    entry.insert(if value != "None" {
+                        vec![value]
+                    } else {
+                        vec![]
+                    });
+                }
+            }
+        });
+        query
     }
 
     #[test]
@@ -135,35 +187,44 @@ mod tests {
             "search=C%2B%2B%20programming".parse::<Query>(),
             Ok(create_query(&[("search", "C%2B%2B%20programming")]))
         );
-        assert_eq!(
-            "key=".parse::<Query>(),
-            Ok(Query {
-                items: vec![QueryItem {
-                    field: "key".into(),
-                    value: Some("".into()),
-                }]
-            })
-        );
+        assert_eq!("key=".parse::<Query>(), Ok(create_query(&[("key", "")])));
         assert_eq!(
             "name=John&age=".parse::<Query>(),
-            Ok(Query {
-                items: vec![
-                    QueryItem {
-                        field: "name".into(),
-                        value: Some("John".into()),
-                    },
-                    QueryItem {
-                        field: "age".into(),
-                        value: Some("".into()),
-                    }
-                ]
-            })
+            Ok(create_query(&[("name", "John"), ("age", "")]))
         );
         assert_eq!(
-            "debug=true".parse::<Query>(),
-            Ok(create_query(&[("debug", "true")]))
+            "name=John&age".parse::<Query>(),
+            Ok(create_query(&[("name", "John"), ("age", "None")]))
         );
         // Empty query (valid)
-        assert_eq!("".parse::<Query>(), Ok(Query { items: vec![] }))
+        assert_eq!(
+            "".parse::<Query>(),
+            Ok(Query {
+                map: HashMap::new()
+            })
+        );
+
+        assert_eq!(
+            "q=apples&oranges&category=fruit".parse::<Query>(),
+            Ok(create_query(&[
+                ("q", "apples"),
+                ("oranges", "None"),
+                ("category", "fruit")
+            ]))
+        );
+        // Duplicate query keys without proper handling
+        assert_eq!(
+            "q=apple&q=banana".parse::<Query>(),
+            Ok(create_query(&[("q", "apple"), ("q", "banana")]))
+        );
+
+        // Unencoded special characters (space, !)
+        assert_matches!("q=hello world!".parse::<Query>(), Err(_));
+        // Missing key before equals sign
+        assert_matches!("=value".parse::<Query>(), Err(_));
+        // Malformed percent encoding (%2G is not valid)
+        assert_matches!("q=hello%2Gworld".parse::<Query>(), Err(_));
+        // Using reserved characters in query parameter names
+        assert_matches!("hello@=world".parse::<Query>(), Err(_));
     }
 }
