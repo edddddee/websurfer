@@ -76,7 +76,7 @@ impl FromStr for QueryItem {
 }
 
 // Query struct that stores all fields and their corresponding values
-// using parallell vectors. 
+// using parallell vectors.
 // These vectors are expected to be small, which is why something like HashMap
 // is not used. In fact, it may in many cases be outright slower than
 // contiguous arrays for this particular use case.
@@ -88,7 +88,7 @@ struct Query {
 
 impl Query {
     fn new() -> Self {
-        Self { 
+        Self {
             fields: vec![],
             values: vec![],
         }
@@ -97,7 +97,6 @@ impl Query {
     fn find(&self, field: &str) -> Option<usize> {
         self.fields.iter().position(|f| *f == field)
     }
-
 
     fn insert(&mut self, field: &str, value: Option<&str>) {
         // If field already exists
@@ -145,10 +144,12 @@ impl FromStr for Query {
         }
         for query_item in s.split('&').map(str::parse::<QueryItem>) {
             match query_item {
-                Ok(QueryItem { field, value }) => query.insert(&field, value.as_deref()),
+                Ok(QueryItem { field, value }) => {
+                    query.insert(&field, value.as_deref())
+                }
                 Err(e) => return Err(e),
             };
-        };
+        }
         Ok(query)
     }
 }
@@ -208,10 +209,7 @@ mod tests {
             Ok(create_query(&[("name", "John"), ("age", "None")]))
         );
         // Empty query (valid)
-        assert_eq!(
-            "".parse::<Query>(),
-            Ok(Query::new())
-        );
+        assert_eq!("".parse::<Query>(), Ok(Query::new()));
 
         assert_eq!(
             "q=apples&oranges&category=fruit".parse::<Query>(),
