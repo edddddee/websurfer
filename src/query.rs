@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::str::FromStr;
 
 use crate::utils::{self, ALLOWED_QUERY_BYTES};
@@ -7,7 +5,6 @@ use crate::utils::{self, ALLOWED_QUERY_BYTES};
 // TODO: percent-encoding currently not handled. Maybe should be
 //       the responsibility of a validation earlier in the chain though.
 //       (for example if only uri exposes some API and query is left private).
-
 #[derive(Debug, Eq, PartialEq)]
 struct QueryItem {
     field: String,
@@ -78,15 +75,59 @@ impl FromStr for QueryItem {
     }
 }
 
+// Query struct that stores all fields and their corresponding values
+// using parallell vectors. 
+// These vectors are expected to be small, which is why something like HashMap
+// is not used. In fact, it may in many cases be outright slower than
+// contiguous arrays for this particular use case.
 #[derive(Debug, Eq, PartialEq)]
 struct Query {
-    map: HashMap<String, Vec<String>>,
+    fields: Vec<String>,
+    values: Vec<Vec<String>>,
 }
 
 impl Query {
     fn new() -> Self {
-        Self {
-            map: HashMap::new(),
+        Self { 
+            fields: vec![],
+            values: vec![],
+        }
+    }
+
+    fn find(&self, field: &str) -> Option<usize> {
+        self.fields.iter().position(|f| *f == field)
+    }
+
+
+    fn insert(&mut self, field: &str, value: Option<&str>) {
+        // If field already exists
+        if let Some(index) = self.find(field) {
+            if let Some(value) = value {
+                self.values[index].push(value.to_string());
+            }
+        } else {
+            self.fields.push(field.to_string());
+            if let Some(value) = value {
+                self.values.push(vec![value.to_string()]);
+            } else {
+                self.values.push(vec![]);
+            }
+        }
+    }
+
+    fn get(&self, field: &str) -> Option<&[String]> {
+        if let Some(index) = self.find(field) {
+            Some(&self.values[index][..])
+        } else {
+            None
+        }
+    }
+
+    fn get_mut(&mut self, field: &str) -> Option<&mut [String]> {
+        if let Some(index) = self.find(field) {
+            Some(&mut self.values[index][..])
+        } else {
+            None
         }
     }
 }
@@ -104,34 +145,16 @@ impl FromStr for Query {
         }
         for query_item in s.split('&').map(str::parse::<QueryItem>) {
             match query_item {
+                Ok(QueryItem { field, value }) => query.insert(&field, value.as_deref()),
                 Err(e) => return Err(e),
-                Ok(QueryItem { field, value }) => {
-                    match query.map.entry(field) {
-                        Occupied(mut entry) => {
-                            if let Some(value) = value {
-                                let vec = entry.get_mut();
-                                vec.push(value);
-                            };
-                        }
-                        Vacant(entry) => {
-                            entry.insert(if let Some(value) = value {
-                                vec![value]
-                            } else {
-                                vec![]
-                            });
-                        }
-                    };
-                }
-            }
-        }
+            };
+        };
         Ok(query)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
-
     use super::*;
 
     // This function is implemented purely for writing less syntax in the
@@ -141,22 +164,10 @@ mod tests {
     fn create_query(field_value_pairs: &[(&str, &str)]) -> Query {
         let mut query = Query::new();
         field_value_pairs.iter().for_each(|&(f, v)| {
-            let field = f.to_string();
-            let value = v.to_string();
-            match query.map.entry(field) {
-                Occupied(mut entry) => {
-                    if value != "None" {
-                        entry.get_mut().push(value);
-                    }
-                }
-                Vacant(entry) => {
-                    entry.insert(if value != "None" {
-                        vec![value]
-                    } else {
-                        vec![]
-                    });
-                }
-            }
+            let field = f;
+            let value = v;
+            let value = if value == "None" { None } else { Some(value) };
+            query.insert(field, value);
         });
         query
     }
@@ -199,9 +210,7 @@ mod tests {
         // Empty query (valid)
         assert_eq!(
             "".parse::<Query>(),
-            Ok(Query {
-                map: HashMap::new()
-            })
+            Ok(Query::new())
         );
 
         assert_eq!(
