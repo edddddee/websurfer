@@ -78,8 +78,8 @@ impl FromStr for QueryItem {
 // Query struct that stores all fields and their corresponding values
 // using parallell vectors.
 // These vectors are expected to be small, which is why something like HashMap
-// is not used. In fact, it may in many cases be outright slower than
-// contiguous arrays for this particular use case.
+// is not used. In fact, HashMap may in many cases be outright slower than
+// using contiguous arrays for this particular use case.
 #[derive(Debug, Eq, PartialEq)]
 struct Query {
     fields: Vec<String>,
