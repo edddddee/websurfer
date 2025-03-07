@@ -74,7 +74,7 @@ impl FromStr for Path {
         {
             return Err(PathParseError);
         }
-        // If a '~' occures,
+        // '~' can only be the start of a name within the path
         if !s
             .iter()
             .enumerate()
